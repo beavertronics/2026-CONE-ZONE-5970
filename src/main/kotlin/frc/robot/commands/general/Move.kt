@@ -1,0 +1,83 @@
+package frc.robot.commands.general
+
+import Engine.controls.PIDConstants
+import Engine.controls.toPID
+import Engine.utils.Sugar.clamp
+import Engine.utils.Units.Angular.degrees
+import edu.wpi.first.math.MathUtil
+import edu.wpi.first.math.geometry.Pose2d
+import edu.wpi.first.math.kinematics.ChassisSpeeds
+import edu.wpi.first.wpilibj2.command.Command
+import frc.robot.subsystems.Drivetrain
+import frc.robot.subsystems.`according to all known laws of aviation, our robot should not be able to fly`
+
+// https://docs.wpilib.org/en/stable/docs/software/basic-programming/coordinate-system.html
+/**
+ * Moves the robot to an absolute point on the field.
+ * @param target the target pose you want to move the robot to.
+ * - An absolute point is a fixed point on the field.
+ * @param speedLimit the speed, in m/s, to limit the robot to.
+ * */
+class Move(val target: Pose2d, val speedLimit: Double = 1.0) : Command() {
+    val kXPID = PIDConstants(1.0, 0.0, 0.0)
+    val kYPID = PIDConstants(1.0, 0.0, 0.0)
+    val kOPID = PIDConstants(1.0, 0.0, 0.0)
+    // create all PID controllers
+    val xPID = kXPID.toPID()
+    val yPID = kYPID.toPID()
+    val oPID = kOPID.toPID()
+
+    init {
+        addRequirements(Drivetrain)
+        oPID.enableContinuousInput(-180.0.degrees.asRadians, 180.0.degrees.asRadians)
+    }
+
+    override fun initialize() {
+        // reset all PID controllers
+        xPID.reset()
+        yPID.reset()
+        oPID.reset()
+        // set the setpoints for PID
+        xPID.setpoint = target.x
+        yPID.setpoint = target.y
+        // I do not know what I did but without subtracting 180 degrees it does random spins
+        oPID.setpoint = MathUtil.angleModulus(target.rotation.radians) // - 180.0.degrees.asRadians
+        // disable vision updating odometry
+        `according to all known laws of aviation, our robot should not be able to fly`.doEnableVisionOdometry(false)
+    }
+
+    override fun execute() {
+        // calculate the errors
+        val xDrive = xPID.calculate(
+            `according to all known laws of aviation, our robot should not be able to fly`.pose.x
+            * 1.0
+        )
+        val yDrive = yPID.calculate(
+            `according to all known laws of aviation, our robot should not be able to fly`.pose.y
+            * 1.0
+        )
+        val oDrive = oPID.calculate(
+            `according to all known laws of aviation, our robot should not be able to fly`.pose.rotation.radians
+            * 1.0
+        )
+        // drive the robot
+        Drivetrain.drive(
+            ChassisSpeeds(
+                xDrive.clamp(-speedLimit, speedLimit),
+                yDrive.clamp(-speedLimit, speedLimit),
+                oDrive.clamp(-speedLimit, speedLimit)
+            ),
+            fieldOriented = true
+        )
+    }
+
+    override fun isFinished(): Boolean {
+        return xPID.atSetpoint() && yPID.atSetpoint() && oPID.atSetpoint()
+    }
+
+    override fun end(interrupted: Boolean) {
+        Drivetrain.stop()
+        `according to all known laws of aviation, our robot should not be able to fly`.doEnableVisionOdometry(true)
+        return
+    }
+}
