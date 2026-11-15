@@ -7,6 +7,7 @@ import Engine.utils.Sugar.radiansToDegrees
 import Engine.utils.Units.Frequency
 import Engine.utils.Units.Linear.DistanceUnit
 import Engine.utils.Units.Time
+import edu.wpi.first.units.measure.Angle
 import kotlin.math.PI
 import kotlin.math.absoluteValue
 import kotlin.math.sign
@@ -108,7 +109,7 @@ value class AngleUnit(val asRadians: Double) {
     operator fun div(other: AngularVelocity) = Time(asRadians / other.asRadiansPerSecond)
 }
 
-inline val Rotation2d.beaverRadians get() = AngleUnit(this.radians)
+//inline val Rotation2d.beaverRadians get() = AngleUnit(this.radians)
 
 // constructors
 inline val Number.rotations get() = AngleUnit(this.toDouble() * TAU)
