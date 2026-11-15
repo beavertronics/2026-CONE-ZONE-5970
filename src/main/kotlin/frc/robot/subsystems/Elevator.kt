@@ -12,10 +12,8 @@ import Engine.utils.Units.Linear.meters
 import com.revrobotics.PersistMode
 import com.revrobotics.ResetMode
 import com.revrobotics.spark.SparkBase
-import com.revrobotics.spark.SparkLimitSwitch
 import com.revrobotics.spark.SparkLowLevel
 import com.revrobotics.spark.SparkMax
-import com.revrobotics.spark.SparkSoftLimit
 import com.revrobotics.spark.config.ClosedLoopConfig
 import com.revrobotics.spark.config.EncoderConfig
 import com.revrobotics.spark.config.FeedForwardConfig
@@ -34,13 +32,12 @@ object Elevator : SubsystemBase() {
     val motor = SparkMax(Constants.elevatorMotorID, SparkLowLevel.MotorType.kBrushless)
     val controller = motor.closedLoopController
     val lowerSwitch = DigitalInput(Constants.elevatorLowerSwitch)
-    val upperSwitch = DigitalInput(Constants.elevatorUpperSwitch)
 
     // establish values
     val elevatorHeight = 0.0.meters
     var setpoint = 0.0.meters
-    var lowerBound = 0.0.degrees
-    var upperBound = 0.0.degrees
+    var lowerBound = 0.0.degrees // should be down
+    var upperBound = 0.0.degrees // todo manually tune (should be up)
 
     init {
         // configure motor
@@ -103,7 +100,7 @@ object Elevator : SubsystemBase() {
     }
 
     /**
-     * Finds and saves the lower and upper bounds of the elevator.
+     * Finds and saves the lower bound of the elevator.
      */
     fun findBoundsCommand() : Command {
         return run {
@@ -113,12 +110,6 @@ object Elevator : SubsystemBase() {
             .andThen({
                 motor.stopMotor()
                 lowerBound = motor.encoder.position.degrees
-            })
-            .andThen({ motor.setVoltage(1.0.volts.asVolts) }) // todo
-            .until { upperSwitch.get() }
-            .andThen({
-                motor.stopMotor()
-                upperBound = motor.encoder.position.degrees
             })
             .andThen({
                 // generate a new config and apply it
